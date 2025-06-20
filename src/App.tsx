@@ -37,6 +37,7 @@ function App() {
   const [randomPort, setRandomPort] = useState<number | null>(null);
   const [generatingPort, setGeneratingPort] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copiedItems, setCopiedItems] = useState<Set<string>>(new Set());
 
   // Use environment-specific API base URL
   // Only use localhost:3001 when running Vite dev server (port 5173 or 3000)
@@ -66,6 +67,24 @@ function App() {
       setLoading(false);
     }
   }, [API_BASE]);
+
+  const handleCopy = async (text: string, itemId: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedItems(prev => new Set([...prev, itemId]));
+      
+      // Remove the copied indicator after 2 seconds
+      setTimeout(() => {
+        setCopiedItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(itemId);
+          return newSet;
+        });
+      }, 2000);
+    } catch {
+      setError('Failed to copy to clipboard');
+    }
+  };
 
   useEffect(() => {
     fetchPortData();
@@ -226,10 +245,14 @@ function App() {
                     </p>
                   </div>
                   <button
-                    onClick={() => navigator.clipboard.writeText(randomPort.toString())}
-                    className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                    onClick={() => handleCopy(randomPort.toString(), `random-${randomPort}`)}
+                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                      copiedItems.has(`random-${randomPort}`)
+                        ? 'bg-green-800 text-white'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
                   >
-                    Copy
+                    {copiedItems.has(`random-${randomPort}`) ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
               </div>
@@ -293,7 +316,7 @@ function App() {
                   {searchTerm ? 'No containers match your search' : 'No containers with exposed ports'}
                 </p>
               ) : (
-                <div className="space-y-4 max-h-96 overflow-y-auto">
+                <div className="space-y-4">
                   {filteredContainers.map(container => (
                     <div
                       key={container.id}
@@ -324,9 +347,21 @@ function App() {
                             <span className="text-slate-600">
                               Container: {port.containerPort}
                             </span>
-                            <span className="font-mono text-slate-800">
-                              → {port.hostIp}:{port.hostPort}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-slate-800">
+                                → {port.hostIp}:{port.hostPort}
+                              </span>
+                              <button
+                                onClick={() => handleCopy(port.hostPort.toString(), `port-${container.id}-${idx}`)}
+                                className={`px-2 py-1 text-xs rounded transition-colors ${
+                                  copiedItems.has(`port-${container.id}-${idx}`)
+                                    ? 'bg-blue-800 text-white'
+                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                                }`}
+                              >
+                                {copiedItems.has(`port-${container.id}-${idx}`) ? '✓' : 'Copy'}
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
