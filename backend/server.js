@@ -33,7 +33,8 @@ app.get('/api/health', async (req, res) => {
 // Get all used ports from Docker containers
 app.get('/api/ports', async (req, res) => {
   try {
-    const containers = await docker.listContainers();
+    // List all containers (running, stopped, etc.)
+    const containers = await docker.listContainers({ all: true });
     const usedPorts = new Set();
     const containerInfo = [];
 
@@ -42,7 +43,9 @@ app.get('/api/ports', async (req, res) => {
       const inspect = await container.inspect();
       
       const containerPorts = [];
-      if (inspect.NetworkSettings.Ports) {
+      
+      // Check NetworkSettings.Ports for running containers
+      if (inspect.NetworkSettings && inspect.NetworkSettings.Ports) {
         for (const [containerPort, hostBindings] of Object.entries(inspect.NetworkSettings.Ports)) {
           if (hostBindings) {
             for (const binding of hostBindings) {
@@ -57,6 +60,26 @@ app.get('/api/ports', async (req, res) => {
           }
         }
       }
+      
+      // Also check HostConfig.PortBindings for stopped containers that have port bindings configured
+      if (inspect.HostConfig && inspect.HostConfig.PortBindings) {
+        for (const [containerPort, hostBindings] of Object.entries(inspect.HostConfig.PortBindings)) {
+          if (hostBindings) {
+            for (const binding of hostBindings) {
+              const hostPort = parseInt(binding.HostPort);
+              // Only add if we haven't already added this port from NetworkSettings
+              if (!containerPorts.some(cp => cp.hostPort === hostPort && cp.containerPort === containerPort)) {
+                usedPorts.add(hostPort);
+                containerPorts.push({
+                  containerPort: containerPort,
+                  hostPort: hostPort,
+                  hostIp: binding.HostIp || '0.0.0.0'
+                });
+              }
+            }
+          }
+        }
+      }
 
       if (containerPorts.length > 0) {
         containerInfo.push({
@@ -64,6 +87,7 @@ app.get('/api/ports', async (req, res) => {
           name: containerData.Names[0].replace('/', ''),
           image: containerData.Image,
           status: containerData.Status,
+          state: containerData.State, // Add state to show if container is running, stopped, etc.
           ports: containerPorts
         });
       }
@@ -88,7 +112,7 @@ app.get('/api/ports/:port/check', async (req, res) => {
       return res.status(400).json({ error: 'Invalid port number' });
     }
 
-    const containers = await docker.listContainers();
+    const containers = await docker.listContainers({ all: true });
     let portInUse = false;
     let usedBy = null;
 
@@ -96,7 +120,8 @@ app.get('/api/ports/:port/check', async (req, res) => {
       const container = docker.getContainer(containerData.Id);
       const inspect = await container.inspect();
       
-      if (inspect.NetworkSettings.Ports) {
+      // Check NetworkSettings.Ports for running containers
+      if (inspect.NetworkSettings && inspect.NetworkSettings.Ports) {
         for (const [containerPort, hostBindings] of Object.entries(inspect.NetworkSettings.Ports)) {
           if (hostBindings) {
             for (const binding of hostBindings) {
@@ -104,7 +129,8 @@ app.get('/api/ports/:port/check', async (req, res) => {
                 portInUse = true;
                 usedBy = {
                   container: containerData.Names[0].replace('/', ''),
-                  containerPort: containerPort
+                  containerPort: containerPort,
+                  state: containerData.State
                 };
                 break;
               }
@@ -112,8 +138,29 @@ app.get('/api/ports/:port/check', async (req, res) => {
           }
           if (portInUse) break;
         }
-        if (portInUse) break;
       }
+      
+      // Also check HostConfig.PortBindings for stopped containers
+      if (!portInUse && inspect.HostConfig && inspect.HostConfig.PortBindings) {
+        for (const [containerPort, hostBindings] of Object.entries(inspect.HostConfig.PortBindings)) {
+          if (hostBindings) {
+            for (const binding of hostBindings) {
+              if (parseInt(binding.HostPort) === portToCheck) {
+                portInUse = true;
+                usedBy = {
+                  container: containerData.Names[0].replace('/', ''),
+                  containerPort: containerPort,
+                  state: containerData.State
+                };
+                break;
+              }
+            }
+          }
+          if (portInUse) break;
+        }
+      }
+      
+      if (portInUse) break;
     }
 
     res.json({
@@ -130,15 +177,27 @@ app.get('/api/ports/:port/check', async (req, res) => {
 // Get a random available port
 app.get('/api/ports/random', async (req, res) => {
   try {
-    const containers = await docker.listContainers();
+    const containers = await docker.listContainers({ all: true });
     const usedPorts = new Set();
 
     for (const containerData of containers) {
       const container = docker.getContainer(containerData.Id);
       const inspect = await container.inspect();
       
-      if (inspect.NetworkSettings.Ports) {
+      // Check NetworkSettings.Ports for running containers
+      if (inspect.NetworkSettings && inspect.NetworkSettings.Ports) {
         for (const [containerPort, hostBindings] of Object.entries(inspect.NetworkSettings.Ports)) {
+          if (hostBindings) {
+            for (const binding of hostBindings) {
+              usedPorts.add(parseInt(binding.HostPort));
+            }
+          }
+        }
+      }
+      
+      // Also check HostConfig.PortBindings for stopped containers
+      if (inspect.HostConfig && inspect.HostConfig.PortBindings) {
+        for (const [containerPort, hostBindings] of Object.entries(inspect.HostConfig.PortBindings)) {
           if (hostBindings) {
             for (const binding of hostBindings) {
               usedPorts.add(parseInt(binding.HostPort));

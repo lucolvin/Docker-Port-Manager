@@ -11,6 +11,7 @@ interface Container {
   name: string;
   image: string;
   status: string;
+  state: string;
   ports: Port[];
 }
 
@@ -25,6 +26,7 @@ interface PortCheck {
   usedBy?: {
     container: string;
     containerPort: string;
+    state?: string;
   };
 }
 
@@ -207,6 +209,15 @@ function App() {
                     {portCheck.usedBy && (
                       <p className="text-sm text-slate-600 mt-1">
                         Used by: {portCheck.usedBy.container} ({portCheck.usedBy.containerPort})
+                        {portCheck.usedBy.state && (
+                          <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                            portCheck.usedBy.state === 'running' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {portCheck.usedBy.state}
+                          </span>
+                        )}
                       </p>
                     )}
                   </div>
@@ -326,8 +337,14 @@ function App() {
                             ID: {container.id}
                           </p>
                         </div>
-                        <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                          {container.status.split(' ')[0]}
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          container.state === 'running' 
+                            ? 'bg-green-100 text-green-800' 
+                            : container.state === 'exited' || container.state === 'stopped'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {container.state || container.status.split(' ')[0]}
                         </span>
                       </div>
                       <div className="space-y-1">
