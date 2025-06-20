@@ -20,13 +20,26 @@ A web application for managing and monitoring Docker container ports on your ser
 
 1. Clone this repository to your server
 2. Make sure Docker and Docker Compose are installed
-3. Run the application:
+3. Build and run the application:
 
 ```bash
-docker-compose up -d
+# Build and start all services
+docker-compose up --build -d
+
+# Check if services are running
+docker-compose ps
+
+# View logs if needed
+docker-compose logs -f
 ```
 
 4. Access the application at `http://your-server-ip:8080`
+
+The application will be available at:
+
+- **Frontend**: `http://your-server-ip:8080`
+- **Backend API**: `http://your-server-ip:3001`
+- **Health Check**: `http://your-server-ip:3001/api/health`
 
 ## Architecture
 
@@ -50,7 +63,7 @@ The frontend uses relative API paths that are proxied through Nginx to the backe
 
 ## Deployment Instructions
 
-### On Your Server:
+### On Your Server
 
 1. Copy all files to your server
 2. Run: `docker-compose up -d`

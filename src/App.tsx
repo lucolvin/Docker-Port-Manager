@@ -38,8 +38,9 @@ function App() {
   const [generatingPort, setGeneratingPort] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Use relative API paths - nginx will proxy to backend
-  const API_BASE = '';
+  // Use environment-specific API base URL
+  // In development (localhost), connect to localhost:3001, in production use nginx proxy (empty string)
+  const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
 
   useEffect(() => {
     fetchPortData();

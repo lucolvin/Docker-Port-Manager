@@ -4,10 +4,31 @@ const Docker = require('dockerode');
 
 const app = express();
 const port = process.env.PORT || 3001;
-const docker = new Docker({ socketPath: '/var/run/docker.sock' });
+
+// Initialize Docker with error handling
+let docker;
+try {
+  docker = new Docker({ socketPath: '/var/run/docker.sock' });
+  console.log('Docker connection initialized');
+} catch (error) {
+  console.error('Failed to initialize Docker connection:', error);
+  process.exit(1);
+}
 
 app.use(cors());
 app.use(express.json());
+
+// Health check endpoint
+app.get('/api/health', async (req, res) => {
+  try {
+    // Test Docker connection
+    await docker.ping();
+    res.json({ status: 'healthy', docker: 'connected' });
+  } catch (error) {
+    console.error('Docker health check failed:', error);
+    res.status(500).json({ status: 'unhealthy', docker: 'disconnected', error: error.message });
+  }
+});
 
 // Get all used ports from Docker containers
 app.get('/api/ports', async (req, res) => {
