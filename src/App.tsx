@@ -39,9 +39,9 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   // Use environment-specific API base URL
-  // Check if we're in development mode by trying to detect Vite dev server
-  const isDevelopment = window.location.port === '5173' || window.location.port === '3000';
-  const API_BASE = isDevelopment ? 'http://localhost:3001' : '';
+  // Only use localhost:3001 when running Vite dev server (port 5173)
+  // In all other cases (including Docker on port 8080), use nginx proxy (empty string)
+  const API_BASE = window.location.port === '5173' ? 'http://localhost:3001' : '';
 
   useEffect(() => {
     fetchPortData();
