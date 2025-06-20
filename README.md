@@ -34,6 +34,8 @@ docker-compose up -d
 - **Backend**: Node.js + Express API
 - **Docker Integration**: Uses Docker socket to communicate with Docker daemon
 
+The frontend uses relative API paths that are proxied through Nginx to the backend, ensuring it works correctly when deployed on any server.
+
 ## API Endpoints
 
 - `GET /api/ports` - Get all used ports and container information
@@ -46,6 +48,16 @@ docker-compose up -d
 - Only port information is exposed, no container control capabilities
 - Runs on internal Docker network with minimal exposed ports
 
+## Deployment Instructions
+
+### On Your Server:
+
+1. Copy all files to your server
+2. Run: `docker-compose up -d`
+3. Access at: `http://your-server-ip:8080`
+
+The application will automatically detect and display the Docker containers running on the server where it's deployed.
+
 ## Troubleshooting
 
 If you encounter issues:
@@ -53,6 +65,7 @@ If you encounter issues:
 1. Ensure Docker socket is accessible: `ls -la /var/run/docker.sock`
 2. Check container logs: `docker-compose logs`
 3. Verify Docker permissions for the user running the containers
+4. Make sure port 8080 is not already in use on your server
 
 ## Development
 
