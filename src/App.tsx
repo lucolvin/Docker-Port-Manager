@@ -68,24 +68,6 @@ function App() {
     }
   }, [API_BASE]);
 
-  const handleCopy = async (text: string, itemId: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedItems(prev => new Set([...prev, itemId]));
-      
-      // Remove the copied indicator after 2 seconds
-      setTimeout(() => {
-        setCopiedItems(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(itemId);
-          return newSet;
-        });
-      }, 2000);
-    } catch {
-      setError('Failed to copy to clipboard');
-    }
-  };
-
   useEffect(() => {
     fetchPortData();
   }, [fetchPortData]);
@@ -245,7 +227,17 @@ function App() {
                     </p>
                   </div>
                   <button
-                    onClick={() => handleCopy(randomPort.toString(), `random-${randomPort}`)}
+                    onClick={() => {
+                      navigator.clipboard.writeText(randomPort.toString());
+                      setCopiedItems(prev => new Set([...prev, `random-${randomPort}`]));
+                      setTimeout(() => {
+                        setCopiedItems(prev => {
+                          const newSet = new Set(prev);
+                          newSet.delete(`random-${randomPort}`);
+                          return newSet;
+                        });
+                      }, 2000);
+                    }}
                     className={`px-3 py-1 text-sm rounded transition-colors ${
                       copiedItems.has(`random-${randomPort}`)
                         ? 'bg-green-800 text-white'
@@ -347,21 +339,9 @@ function App() {
                             <span className="text-slate-600">
                               Container: {port.containerPort}
                             </span>
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-slate-800">
-                                → {port.hostIp}:{port.hostPort}
-                              </span>
-                              <button
-                                onClick={() => handleCopy(port.hostPort.toString(), `port-${container.id}-${idx}`)}
-                                className={`px-2 py-1 text-xs rounded transition-colors ${
-                                  copiedItems.has(`port-${container.id}-${idx}`)
-                                    ? 'bg-blue-800 text-white'
-                                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                                }`}
-                              >
-                                {copiedItems.has(`port-${container.id}-${idx}`) ? '✓' : 'Copy'}
-                              </button>
-                            </div>
+                            <span className="font-mono text-slate-800">
+                              → {port.hostIp}:{port.hostPort}
+                            </span>
                           </div>
                         ))}
                       </div>
