@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface Port {
   containerPort: string;
@@ -50,11 +50,7 @@ function App() {
   console.log('Is development:', isDevelopment);
   console.log('API_BASE:', API_BASE);
 
-  useEffect(() => {
-    fetchPortData();
-  }, []);
-
-  const fetchPortData = async () => {
+  const fetchPortData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -69,7 +65,11 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE]);
+
+  useEffect(() => {
+    fetchPortData();
+  }, [fetchPortData]);
 
   const checkPort = async () => {
     if (!searchTerm.trim()) return;
@@ -115,14 +115,14 @@ function App() {
     }
   };
 
-  const filteredPorts = portData.usedPorts.filter(port => 
+  const filteredPorts = portData.usedPorts.filter((port: number) => 
     port.toString().includes(searchTerm)
   );
 
-  const filteredContainers = portData.containers.filter(container =>
+  const filteredContainers = portData.containers.filter((container: Container) =>
     container.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     container.image.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    container.ports.some(port => port.hostPort.toString().includes(searchTerm))
+    container.ports.some((port: Port) => port.hostPort.toString().includes(searchTerm))
   );
 
   return (
@@ -149,7 +149,7 @@ function App() {
               <input
                 type="text"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                 placeholder="Enter port number or container name..."
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
