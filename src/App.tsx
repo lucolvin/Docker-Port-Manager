@@ -369,27 +369,14 @@ function App() {
                 </p>
               ) : (
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                  {filteredPorts.map(port => {
-                    const portLink = createPortLink(port);
-                    return portLink ? (
-                      <a
-                        key={port}
-                        href={portLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-center font-mono text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-800 dark:hover:text-blue-300 transition-colors underline"
-                      >
-                        {port}
-                      </a>
-                    ) : (
-                      <div
-                        key={port}
-                        className="px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-center font-mono text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-                      >
-                        {port}
-                      </div>
-                    );
-                  })}
+                  {filteredPorts.map(port => (
+                    <div
+                      key={port}
+                      className="px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-center font-mono text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                    >
+                      {port}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -461,16 +448,6 @@ function App() {
                                     {port.hostPort}
                                   </span>
                                 )}
-                                <button
-                                  onClick={() => copyToClipboard(port.hostPort.toString(), `port-${container.id}-${idx}`)}
-                                  className={`ml-2 px-2 py-1 text-xs rounded transition-colors ${
-                                    copiedItems.has(`port-${container.id}-${idx}`)
-                                      ? 'bg-green-600 text-white'
-                                      : 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
-                                  }`}
-                                >
-                                  {copiedItems.has(`port-${container.id}-${idx}`) ? '✓' : 'Copy'}
-                                </button>
                               </div>
                             </div>
                           );
