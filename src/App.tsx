@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import Settings from './Settings';
 
 interface Port {
   containerPort: string;
@@ -41,6 +42,8 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [copiedItems, setCopiedItems] = useState<Set<string>>(new Set());
   const [darkMode, setDarkMode] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [baseUrl, setBaseUrl] = useState('');
 
   // Initialize dark mode from localStorage or system preference
   useEffect(() => {
@@ -54,6 +57,12 @@ function App() {
       setDarkMode(false);
       document.documentElement.classList.remove('dark');
     }
+  }, []);
+
+  // Load base URL from localStorage
+  useEffect(() => {
+    const savedBaseUrl = localStorage.getItem('baseUrl') || '';
+    setBaseUrl(savedBaseUrl);
   }, []);
 
   const toggleDarkMode = () => {
@@ -146,6 +155,23 @@ function App() {
     }
   };
 
+  const copyToClipboard = (text: string, itemId: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedItems(prev => new Set([...prev, itemId]));
+    setTimeout(() => {
+      setCopiedItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemId);
+        return newSet;
+      });
+    }, 2000);
+  };
+
+  const createPortLink = (port: number) => {
+    if (!baseUrl) return null;
+    return `${baseUrl}:${port}`;
+  };
+
   const filteredPorts = portData.usedPorts.filter((port: number) => 
     port.toString().includes(searchTerm)
   );
@@ -156,6 +182,22 @@ function App() {
     container.ports.some((port: Port) => port.hostPort.toString().includes(searchTerm))
   );
 
+  // Show settings page
+  if (showSettings) {
+    return (
+      <Settings
+        darkMode={darkMode}
+        onDarkModeToggle={toggleDarkMode}
+        onBack={() => {
+          setShowSettings(false);
+          // Reload base URL in case it was changed
+          const savedBaseUrl = localStorage.getItem('baseUrl') || '';
+          setBaseUrl(savedBaseUrl);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 transition-colors">
       {/* Header */}
@@ -165,21 +207,16 @@ function App() {
             Docker Port Manager
           </h1>
           
-          {/* Dark Mode Toggle */}
+          {/* Settings Button */}
           <button
-            onClick={toggleDarkMode}
+            onClick={() => setShowSettings(true)}
             className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-            aria-label="Toggle dark mode"
+            aria-label="Open settings"
           >
-            {darkMode ? (
-              <svg className="w-6 h-6 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6 text-slate-600" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-              </svg>
-            )}
+            <svg className="w-6 h-6 text-slate-600 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
           </button>
         </div>
       </header>
@@ -283,17 +320,7 @@ function App() {
                     </p>
                   </div>
                   <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(randomPort.toString());
-                      setCopiedItems(prev => new Set([...prev, `random-${randomPort}`]));
-                      setTimeout(() => {
-                        setCopiedItems(prev => {
-                          const newSet = new Set(prev);
-                          newSet.delete(`random-${randomPort}`);
-                          return newSet;
-                        });
-                      }, 2000);
-                    }}
+                    onClick={() => copyToClipboard(randomPort.toString(), `random-${randomPort}`)}
                     className={`px-3 py-1 text-sm rounded transition-colors ${
                       copiedItems.has(`random-${randomPort}`)
                         ? 'bg-green-800 text-white'
@@ -342,14 +369,27 @@ function App() {
                 </p>
               ) : (
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                  {filteredPorts.map(port => (
-                    <div
-                      key={port}
-                      className="px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-center font-mono text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-                    >
-                      {port}
-                    </div>
-                  ))}
+                  {filteredPorts.map(port => {
+                    const portLink = createPortLink(port);
+                    return portLink ? (
+                      <a
+                        key={port}
+                        href={portLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-center font-mono text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-800 dark:hover:text-blue-300 transition-colors underline"
+                      >
+                        {port}
+                      </a>
+                    ) : (
+                      <div
+                        key={port}
+                        className="px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-center font-mono text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                      >
+                        {port}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -393,19 +433,48 @@ function App() {
                         </span>
                       </div>
                       <div className="space-y-1">
-                        {container.ports.map((port, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center justify-between text-sm"
-                          >
-                            <span className="text-slate-600 dark:text-slate-400">
-                              Container: {port.containerPort}
-                            </span>
-                            <span className="font-mono text-slate-800 dark:text-slate-200">
-                              → {port.hostIp}:{port.hostPort}
-                            </span>
-                          </div>
-                        ))}
+                        {container.ports.map((port, idx) => {
+                          const portLink = createPortLink(port.hostPort);
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between text-sm"
+                            >
+                              <span className="text-slate-600 dark:text-slate-400">
+                                Container: {port.containerPort}
+                              </span>
+                              <div className="flex items-center space-x-2">
+                                <span className="font-mono text-slate-800 dark:text-slate-200">
+                                  → {port.hostIp}:
+                                </span>
+                                {portLink ? (
+                                  <a
+                                    href={portLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-mono text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline"
+                                  >
+                                    {port.hostPort}
+                                  </a>
+                                ) : (
+                                  <span className="font-mono text-slate-800 dark:text-slate-200">
+                                    {port.hostPort}
+                                  </span>
+                                )}
+                                <button
+                                  onClick={() => copyToClipboard(port.hostPort.toString(), `port-${container.id}-${idx}`)}
+                                  className={`ml-2 px-2 py-1 text-xs rounded transition-colors ${
+                                    copiedItems.has(`port-${container.id}-${idx}`)
+                                      ? 'bg-green-600 text-white'
+                                      : 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500'
+                                  }`}
+                                >
+                                  {copiedItems.has(`port-${container.id}-${idx}`) ? '✓' : 'Copy'}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
